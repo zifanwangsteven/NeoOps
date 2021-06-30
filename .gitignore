@@ -1,3 +1,4 @@
 *.nefdbgnfo
 *.nef
+*.manifest.json
 venv/

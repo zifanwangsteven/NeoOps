@@ -92,6 +92,9 @@ def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, ma
         raise Exception('Expiry time is set too soon.')
     put(EXPIRY_KEY + pool_id, expiry)
 
+    if threshold < time:
+        raise Exception('Threshold time is set too soon.')
+
     if threshold >= expiry:
         raise Exception('Threshold time must be set before expiry time.')
     put(THRESHOLD_KEY + pool_id, threshold)
@@ -381,7 +384,7 @@ def _deploy(data: Any, update: bool):
         return
     if len(get(OWNER_KEY)) != 0:
         return
-    put(OWNER_KEY, "NfT1orMtVTTDSPAJAGCutx6hFZkLKSr5dV".to_script_hash())
+    put(OWNER_KEY, "NbZwekwHGJgehkpX3TFanXTtTTQqvJQSo6".to_script_hash())
 
 
 @public

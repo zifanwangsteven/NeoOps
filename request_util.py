@@ -15,5 +15,3 @@ def binance_util(symbol, timestamp):
     }
     re = requests.get(base_url, params)
     return re.url, path_filter
-
-1624956486776

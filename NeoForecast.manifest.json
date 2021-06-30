@@ -8,7 +8,7 @@
                 "offset": 0,
                 "parameters": [
                     {
-                        "name": "owner",
+                        "name": "pool_owner",
                         "type": "Hash160"
                     },
                     {
@@ -61,7 +61,7 @@
             },
             {
                 "name": "cancel_pool",
-                "offset": 1023,
+                "offset": 1104,
                 "parameters": [
                     {
                         "name": "pool_id",
@@ -73,7 +73,7 @@
             },
             {
                 "name": "bet",
-                "offset": 1507,
+                "offset": 1588,
                 "parameters": [
                     {
                         "name": "player",
@@ -93,7 +93,7 @@
             },
             {
                 "name": "cancel_bet",
-                "offset": 2205,
+                "offset": 2286,
                 "parameters": [
                     {
                         "name": "player",
@@ -109,7 +109,7 @@
             },
             {
                 "name": "oracle_call",
-                "offset": 2707,
+                "offset": 2788,
                 "parameters": [
                     {
                         "name": "pool_id",
@@ -121,7 +121,7 @@
             },
             {
                 "name": "store",
-                "offset": 3007,
+                "offset": 3185,
                 "parameters": [
                     {
                         "name": "url",
@@ -145,7 +145,7 @@
             },
             {
                 "name": "interpret",
-                "offset": 3060,
+                "offset": 3238,
                 "parameters": [
                     {
                         "name": "pool_id",
@@ -157,7 +157,7 @@
             },
             {
                 "name": "payout",
-                "offset": 3328,
+                "offset": 3560,
                 "parameters": [
                     {
                         "name": "pool_id",
@@ -169,7 +169,7 @@
             },
             {
                 "name": "transfer_token",
-                "offset": 4373,
+                "offset": 4621,
                 "parameters": [
                     {
                         "name": "token_id",
@@ -197,7 +197,7 @@
             },
             {
                 "name": "onNEP17Payment",
-                "offset": 4445,
+                "offset": 4693,
                 "parameters": [
                     {
                         "name": "from_address",
@@ -217,7 +217,7 @@
             },
             {
                 "name": "_deploy",
-                "offset": 4613,
+                "offset": 4910,
                 "parameters": [
                     {
                         "name": "data",
@@ -233,7 +233,7 @@
             },
             {
                 "name": "update",
-                "offset": 4761,
+                "offset": 5072,
                 "parameters": [
                     {
                         "name": "script",
@@ -249,14 +249,14 @@
             },
             {
                 "name": "destroy",
-                "offset": 4914,
+                "offset": 5225,
                 "parameters": [],
                 "returntype": "Void",
                 "safe": false
             },
             {
                 "name": "_initialize",
-                "offset": 5064,
+                "offset": 5375,
                 "parameters": [],
                 "returntype": "Void",
                 "safe": false

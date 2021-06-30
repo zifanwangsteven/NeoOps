@@ -28,6 +28,10 @@ def manifest_metadata()->NeoMetadata:
 #-----------------------
 OWNER_KEY = b'OWNER'
 POOL_OWNER_KEY = b'pool_owner_'
+
+# throughout this contract, the deployer of the smart contract will be consistently referred to as 'owner'
+# while the owners of individual pools will be referred to as 'pool_owner's.
+
 TOKEN_ACCEPTED_KEY = b'token_'
 MARGIN_KEY = b'margin_'
 TOTAL_MARGIN_KEY = b'total_margin_'
@@ -60,14 +64,14 @@ GAS_ADDRESS = GAS
 #-----------------------
 
 @public
-def pool_init(owner: UInt160, token_id: int, url: str, json_filter: str, margin: int, expiry: int, threshold: int, strike: str, description: str)-> UInt256:
+def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, margin: int, expiry: int, threshold: int, strike: str, description: str)-> UInt256:
 
-    if not check_witness(owner):
+    if not check_witness(pool_owner):
         raise Exception('No authorization.')
 
     tx: Transaction = script_container
     pool_id: UInt256 = tx.hash
-    put(POOL_OWNER_KEY + pool_id, owner)
+    put(POOL_OWNER_KEY + pool_id, pool_owner)
 
     if token_id == 0:
         put(TOKEN_ACCEPTED_KEY + pool_id, NEO_ADDRESS)
@@ -120,17 +124,19 @@ def retrieve_pool(pool_id: UInt256)-> Dict:
     json['json_filter'] = get(FILTER_KEY + pool_id).to_str()
     json['description'] = get(DESCRIPTION_KEY + pool_id).to_str()
     json['status'] = get(STATUS_KEY + pool_id).to_int()
+    json['deposit'] = get(DEPOSIT_KEY + pool_id).to_int()
+    json['strike_price'] = get(STRIKE_PRICE_KEY + pool_id).to_str()
     return json
 
 
 @public
 def cancel_pool(pool_id: UInt256):
-    owner = get(POOL_OWNER_KEY + pool_id)
-    if len(owner) == 0:
+    pool_owner = get(POOL_OWNER_KEY + pool_id)
+    if len(pool_owner) == 0:
         raise Exception('Pool does not exist.')
 
-    owner = UInt160(owner)
-    if not check_witness(owner):
+    pool_owner = UInt160(pool_owner)
+    if not check_witness(pool_owner):
         raise Exception('No authorization.')
 
     if get(STATUS_KEY + pool_id).to_int() != 0:
@@ -227,12 +233,21 @@ def cancel_bet(player: UInt160, pool_id: UInt256):
 
 @public
 def oracle_call(pool_id: UInt160):
-    owner: UInt160 = UInt160(get(POOL_OWNER_KEY + pool_id))
-    if not check_witness(owner):
+    pool_owner = get(POOL_OWNER_KEY + pool_id)
+    if len(pool_owner) == 0:
+        raise Exception('Pool does not exist.')
+
+    pool_owner = UInt160(pool_owner)
+    if not check_witness(pool_owner):
         raise Exception('No authorization.')
+
+    if get(STATUS_KEY + pool_id).to_int() != 0:
+        raise Exception('Pool already canceled or closed.')
+
     expiry = get(EXPIRY_KEY + pool_id).to_int()
     if time < expiry:
         raise Exception('Not yet time to call on oracle.')
+
     url = get(URL_KEY + pool_id).to_str()
     json_filter = get(FILTER_KEY + pool_id).to_str()
     Oracle.request(url, json_filter, 'store', pool_id, 100000000)
@@ -243,21 +258,27 @@ def store(url: str, user_data: Any, code: int, result: bytes):
     pool_id = cast(UInt160, user_data)
     if code != 0:
         put(RAW_DATA_KEY + pool_id, 'Error')
+        # extra contingency for oracle failure
     else:
         put(RAW_DATA_KEY + pool_id, result)
 
 @public
 def interpret(pool_id: UInt256):
-    owner = get(POOL_OWNER_KEY + pool_id)
-    if(len(owner)) == 0:
+    pool_owner = get(POOL_OWNER_KEY + pool_id)
+    if(len(pool_owner)) == 0:
         raise Exception('Pool does not exist.')
-    owner = UInt160(owner)
-    if not check_witness(owner):
+    pool_owner = UInt160(pool_owner)
+    if not check_witness(pool_owner):
         raise Exception('No authorization.')
+    spot = get(RAW_DATA_KEY + pool_id)
+    if len(spot) == 0:
+        raise Exception('Spot price not yet retrieved by Oracle nodes.')
+    spot = cast(str, spot)
     strike = get(STRIKE_PRICE_KEY + pool_id).to_str()
-    spot = get(RAW_DATA_KEY + pool_id).to_str()
+
     if spot == 'Error':
         raise Exception('Oracle error.')
+
     if spot >= strike:
         put(RESULT_KEY + pool_id, 1)
     else:
@@ -265,13 +286,20 @@ def interpret(pool_id: UInt256):
 
 @public
 def payout(pool_id: UInt256):
-    pool_owner = UInt160(get(POOL_OWNER_KEY + pool_id))
+    pool_owner = get(POOL_OWNER_KEY + pool_id)
+    if len(pool_owner) == 0:
+        raise Exception('Pool does not exist.')
+
+    pool_owner = UInt160(pool_owner)
     if not check_witness(pool_owner):
         raise Exception("No authorization.")
+
     if get(STATUS_KEY + pool_id).to_int() != 0:
         raise Exception('Pool already canceled or closed.')
+
     if len(get(RESULT_KEY + pool_id)) == 0:
         raise Exception("Result not yet available")
+
     owner = UInt160(get(OWNER_KEY))
     token = UInt160(get(TOKEN_ACCEPTED_KEY + pool_id))
     players = find(PLAYER_POSITION_KEY + pool_id)
@@ -291,7 +319,6 @@ def payout(pool_id: UInt256):
     deposit = get(DEPOSIT_KEY + pool_id).to_int()
     deposit_commission = deposit * DEPOSIT_COMMISSION // 1000
     deposit -= deposit_commission
-    transfer_token(token, executing_script_hash, owner, deposit_commission, None)
     transfer_token(token, executing_script_hash, pool_owner, deposit, None)
 
     if result == 0 and total_short != 0:
@@ -327,17 +354,19 @@ def transfer_token(token_id: UInt160, from_address: UInt160, to_address: UInt160
 @public
 def onNEP17Payment(from_address: UInt160, amount: int, data: Union[UInt256, None]):
     if not isinstance(data, None):
-        owner = get(POOL_OWNER_KEY + data)
-        if len(owner) == 0:
+        pool_owner = get(POOL_OWNER_KEY + data)
+        if len(pool_owner) == 0:
             abort()
-        elif from_address != UInt160(owner):
+        pool_owner = UInt160(pool_owner)
+
+        if from_address != UInt160(pool_owner):
             abort()
-        elif calling_script_hash != GAS:
+        if calling_script_hash != GAS:
             abort()
-        elif amount < MINIMUM_DEPOSIT:
+        if amount < MINIMUM_DEPOSIT:
             abort()
-        else:
-            put(DEPOSIT_KEY + data, amount)
+
+        put(DEPOSIT_KEY + data, amount)
 
 
 
@@ -352,7 +381,7 @@ def _deploy(data: Any, update: bool):
         return
     if len(get(OWNER_KEY)) != 0:
         return
-    put(OWNER_KEY, "FILL IN ADDRESS HERE".to_script_hash())
+    put(OWNER_KEY, "NfT1orMtVTTDSPAJAGCutx6hFZkLKSr5dV".to_script_hash())
 
 
 @public

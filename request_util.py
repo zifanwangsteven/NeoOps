@@ -1,17 +1,21 @@
-import requests
+import time
+import json
+def utility():
+    params = {}
+    current = int(time.time() * 1000)
+    MINUTE = 60 * 1000
+    expiry = current + 5 * MINUTE
+    threshold = expiry - 1
+    base_url = 'https://api.binance.com/api/v3/aggTrades?symbol=BTCUSDT&startTime={}&endTime={}'.format(expiry-1000, expiry)
+    params['pool_owner'] = 'NfT1orMtVTTDSPAJAGCutx6hFZkLKSr5dV'
+    params['token_id'] = 1
+    params['url'] = base_url
+    params['json_filter'] = '$[-1:]..p'
+    params['margin'] = 100000000
+    params['expiry'] = expiry
+    params['threshold'] = threshold
+    params['stike'] = '35041.8'
+    params['description'] = 'test'
+    return json.dumps(params)
 
-def binance_util(symbol, timestamp):
-    """
-    :param symbol: ticker symbol on binance spot api
-    :param timestamp: timestamp since Epoch in miliseconds
-    :return: url for oracle request
-    """
-    path_filter = '$[-1:]..p'
-    base_url = 'https://api.binance.com/api/v3/aggTrades'
-    params = {
-        'symbol': symbol,
-        'startTime': timestamp-1000,
-        'endTime': timestamp
-    }
-    re = requests.get(base_url, params)
-    return re.url, path_filter
+print(utility())

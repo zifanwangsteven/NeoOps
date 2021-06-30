@@ -359,15 +359,15 @@ def onNEP17Payment(from_address: UInt160, amount: int, data: Union[UInt256, None
     if not isinstance(data, None):
         pool_owner = get(POOL_OWNER_KEY + data)
         if len(pool_owner) == 0:
-            abort()
+            raise Exception('Pool does not exist.')
         pool_owner = UInt160(pool_owner)
 
         if from_address != UInt160(pool_owner):
-            abort()
+            raise Exception('No authorization.')
         if calling_script_hash != GAS:
-            abort()
+            raise Exception('Only accepts GAS as deposit.')
         if amount < MINIMUM_DEPOSIT:
-            abort()
+            raise Exception('A minimum deposit of 100000000 GAS must be transferred.')
 
         put(DEPOSIT_KEY + data, amount)
 
@@ -384,7 +384,7 @@ def _deploy(data: Any, update: bool):
         return
     if len(get(OWNER_KEY)) != 0:
         return
-    put(OWNER_KEY, "NbZwekwHGJgehkpX3TFanXTtTTQqvJQSo6".to_script_hash())
+    put(OWNER_KEY, "NfT1orMtVTTDSPAJAGCutx6hFZkLKSr5dV".to_script_hash())
 
 
 @public

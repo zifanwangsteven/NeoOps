@@ -1,0 +1,76 @@
+{
+    "name": "OracleTest",
+    "groups": [],
+    "abi": {
+        "methods": [
+            {
+                "name": "get_storage",
+                "offset": 0,
+                "parameters": [],
+                "returntype": "ByteArray",
+                "safe": false
+            },
+            {
+                "name": "_deploy",
+                "offset": 21,
+                "parameters": [],
+                "returntype": "Void",
+                "safe": false
+            },
+            {
+                "name": "oracle_call",
+                "offset": 22,
+                "parameters": [
+                    {
+                        "name": "url",
+                        "type": "String"
+                    }
+                ],
+                "returntype": "Void",
+                "safe": false
+            },
+            {
+                "name": "store",
+                "offset": 96,
+                "parameters": [
+                    {
+                        "name": "url",
+                        "type": "String"
+                    },
+                    {
+                        "name": "user_data",
+                        "type": "Any"
+                    },
+                    {
+                        "name": "code",
+                        "type": "Integer"
+                    },
+                    {
+                        "name": "result",
+                        "type": "ByteArray"
+                    }
+                ],
+                "returntype": "Void",
+                "safe": false
+            },
+            {
+                "name": "_initialize",
+                "offset": 112,
+                "parameters": [],
+                "returntype": "Void",
+                "safe": false
+            }
+        ],
+        "events": []
+    },
+    "permissions": [
+        {
+            "contract": "*",
+            "methods": "*"
+        }
+    ],
+    "trusts": [],
+    "features": [],
+    "supportedstandards": [],
+    "extra": null
+}

@@ -42,8 +42,6 @@ FILTER_KEY = b'filter_'
 RAW_DATA_KEY = b'raw_data_'
 EXPIRY_KEY = b'expiry_'
 SYMBOL_KEY = b'symbol_'
-URL_KEY = b'url_'
-FILTER_KEY = b'filter_'
 DESCRIPTION_KEY = b'description_'
 THRESHOLD_KEY = b'threshold_'
 PLAYER_POSITION_KEY = b'user_bet_'
@@ -56,7 +54,7 @@ OWNER_COMMISSION = 1 # 0.1%
 POOL_OWNER_COMMISSION = 2 # 0.2%
 DEPOSIT_COMMISSION = 2 # 0.2%
 CANCEL_PENALTY = 3 # 0.3%
-MINIMUM_DEPOSIT = 10 * 10_000_000 # minimum deposit for creating a pool
+MINIMUM_DEPOSIT = 1 * 100_000_000 # minimum deposit for creating a pool
 ORACLE_ADDRESS = 'NTz4UrybSL4C7HSfaVpXV6hcsWTkks8Nrj'
 
 NEO_ADDRESS = NEO
@@ -68,7 +66,7 @@ GAS_ADDRESS = GAS
 #-----------------------
 
 @public
-def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, margin: int, expiry: int, threshold: int, strike: str, description: str)-> UInt256:
+def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, margin: int, expiry: int, threshold: int, deposit: int, strike: str, description: str)-> UInt256:
 
     if not check_witness(pool_owner):
         raise Exception('No authorization.')
@@ -83,8 +81,10 @@ def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, ma
     else:
         raise Exception('Unauthorized token.')
 
-    startTime = cast(str, expiry-1000)
-    endTime = cast(str, expiry)
+    if deposit < MINIMUM_DEPOSIT:
+        raise Exception('Mininum deposit is 1 GAS token.')
+    transfer_token(GAS, pool_owner, executing_script_hash, deposit, None)
+    put(DEPOSIT_KEY + pool_id, deposit)
 
     put(URL_KEY + pool_id, url)
     put(FILTER_KEY + pool_id, json_filter)
@@ -167,10 +167,6 @@ def bet(player: UInt160, pool_id: UInt256, bet_option: int):
 
     if len(get(POOL_OWNER_KEY+pool_id)) == 0:
         raise Exception("Pool does not exist.")
-
-    # # if deposit has not yet been transferred to contract, suspend all betting invocations
-    # if len(get(DEPOSIT_KEY + pool_id)) == 0:
-    #     raise Exception("Pool not yet available for bet.")
 
     if not check_witness(player):
         raise Exception("No authorization.")
@@ -357,30 +353,14 @@ def payout(pool_id: UInt256):
 
 
 
-def transfer_token(token_id: UInt160, from_address: UInt160, to_address: UInt160, amount: int, data: Union[UInt256, None]):
+def transfer_token(token_id: UInt160, from_address: UInt160, to_address: UInt160, amount: int, data: None):
     success: bool = call_contract(token_id, 'transfer', [from_address, to_address, amount, data])
     if not success:
         raise Exception('Transfer of token was not successful.')
 
 @public
-def onNEP17Payment(from_address: UInt160, amount: int, data: Union[UInt256, None]):
-    if not isinstance(data, None):
-        pool_owner = get(POOL_OWNER_KEY + data)
-
-        if len(pool_owner) == 0:
-            raise Exception('Pool does not exist.')
-        pool_owner = UInt160(pool_owner)
-
-        if from_address != UInt160(pool_owner):
-            raise Exception('No authorization.')
-
-        if calling_script_hash != GAS:
-            raise Exception('Only accepts GAS as deposit.')
-
-        if amount < MINIMUM_DEPOSIT:
-            raise Exception('A minimum deposit of 100000000 GAS must be transferred.')
-
-        put(DEPOSIT_KEY + data, amount)
+def onNEP17Payment(from_address: UInt160, amount: int, data: None):
+    pass
 
 
 

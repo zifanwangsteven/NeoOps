@@ -42,6 +42,8 @@ FILTER_KEY = b'filter_'
 RAW_DATA_KEY = b'raw_data_'
 EXPIRY_KEY = b'expiry_'
 SYMBOL_KEY = b'symbol_'
+URL_KEY = b'url_'
+FILTER_KEY = b'filter_'
 DESCRIPTION_KEY = b'description_'
 THRESHOLD_KEY = b'threshold_'
 PLAYER_POSITION_KEY = b'user_bet_'
@@ -55,6 +57,7 @@ POOL_OWNER_COMMISSION = 2 # 0.2%
 DEPOSIT_COMMISSION = 2 # 0.2%
 CANCEL_PENALTY = 3 # 0.3%
 MINIMUM_DEPOSIT = 10 * 10_000_000 # minimum deposit for creating a pool
+ORACLE_ADDRESS = 'NTz4UrybSL4C7HSfaVpXV6hcsWTkks8Nrj'
 
 NEO_ADDRESS = NEO
 GAS_ADDRESS = GAS
@@ -65,7 +68,7 @@ GAS_ADDRESS = GAS
 #-----------------------
 
 @public
-def pool_init(pool_owner: UInt160, token_id: int, symbol: str, json_filter: str, margin: int, expiry: int, threshold: int, strike: str, description: str)-> UInt256:
+def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, margin: int, expiry: int, threshold: int, strike: str, description: str)-> UInt256:
 
     if not check_witness(pool_owner):
         raise Exception('No authorization.')
@@ -80,10 +83,11 @@ def pool_init(pool_owner: UInt160, token_id: int, symbol: str, json_filter: str,
     else:
         raise Exception('Unauthorized token.')
 
-    url = 'https://api.binance.com/api/v3/aggTrades?symbol={}&startTime={}&endTime={}'.format(symbol, expiry-1000, expiry)
+    startTime = cast(str, expiry-1000)
+    endTime = cast(str, expiry)
+
     put(URL_KEY + pool_id, url)
     put(FILTER_KEY + pool_id, json_filter)
-
 
     if margin < 0:
         raise Exception('Margin must an integer greater than 0.')
@@ -125,7 +129,7 @@ def retrieve_pool(pool_id: UInt256)-> Dict:
     json['short'] = get(SHORT_POSITION_KEY + pool_id).to_int()
     json['long'] = get(LONG_POSITION_KEY + pool_id).to_int()
     json['url'] = get(URL_KEY + pool_id).to_str()
-    json['json_filter'] = get(FILTER_KEY + pool_id).to_str()
+    json['filter'] = get(FILTER_KEY + pool_id).to_str()
     json['description'] = get(DESCRIPTION_KEY + pool_id).to_str()
     json['status'] = get(STATUS_KEY + pool_id).to_int()
     json['deposit'] = get(DEPOSIT_KEY + pool_id).to_int()
@@ -261,13 +265,12 @@ def oracle_call(pool_id: UInt256):
 
 @public
 def store(url: str, user_data: Any, code: int, result: bytes):
-    if calling_script_hash != Oracle.__hash__:
-        raise Exception('No authorization.')
-
+    oracle_hash = ORACLE_ADDRESS.to_script_hash()
+    if calling_script_hash != oracle_hash:
+        raise Exception('No authorization')
     pool_id = cast(UInt160, user_data)
     if code != 0:
         put(RAW_DATA_KEY + pool_id, 'Error')
-        # extra contingency for oracle failure
     else:
         put(RAW_DATA_KEY + pool_id, result)
 
@@ -362,7 +365,6 @@ def transfer_token(token_id: UInt160, from_address: UInt160, to_address: UInt160
 @public
 def onNEP17Payment(from_address: UInt160, amount: int, data: Union[UInt256, None]):
     if not isinstance(data, None):
-
         pool_owner = get(POOL_OWNER_KEY + data)
 
         if len(pool_owner) == 0:
@@ -388,7 +390,7 @@ def onNEP17Payment(from_address: UInt160, amount: int, data: Union[UInt256, None
 #-----------------------
 
 @public
-def _deploy(data: Any, update: bool):
+def deploy(data: Any, update: bool):
     if update:
         return
     if len(get(OWNER_KEY)) != 0:

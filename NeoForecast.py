@@ -353,13 +353,13 @@ def payout(pool_id: UInt256):
 
 
 
-def transfer_token(token_id: UInt160, from_address: UInt160, to_address: UInt160, amount: int, data: None):
+def transfer_token(token_id: UInt160, from_address: UInt160, to_address: UInt160, amount: int, data: Any):
     success: bool = call_contract(token_id, 'transfer', [from_address, to_address, amount, data])
     if not success:
         raise Exception('Transfer of token was not successful.')
 
 @public
-def onNEP17Payment(from_address: UInt160, amount: int, data: None):
+def onNEP17Payment(from_address: UInt160, amount: int, data: Any):
     pass
 
 

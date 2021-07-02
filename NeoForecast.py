@@ -272,30 +272,6 @@ def store(url: str, user_data: Any, code: int, result: bytes):
     else:
         put(RAW_DATA_KEY + pool_id, spot)
 
-@public
-def interpret(pool_id: UInt256):
-    pool_owner = get(POOL_OWNER_KEY + pool_id)
-    if(len(pool_owner)) == 0:
-        raise Exception('Pool does not exist.')
-    pool_owner = UInt160(pool_owner)
-    if not check_witness(pool_owner):
-        raise Exception('No authorization.')
-    spot = get(RAW_DATA_KEY + pool_id)
-    if len(spot) == 0:
-        raise Exception('Spot price not yet retrieved by Oracle nodes.')
-    strike = get(STRIKE_PRICE_KEY + pool_id)
-
-    spot = cast(str, spot)
-    strike = cast(str, strike)
-    if spot == 'Error':
-        raise Exception('Oracle error.')
-
-    if greater_equal(spot, strike):
-        put(RESULT_KEY + pool_id, 1)
-    else:
-        put(RESULT_KEY + pool_id, 0)
-
-
 def greater_equal(a: str, b: str)->bool:
     length_a = len(a)
     length_b = len(b)
@@ -352,13 +328,23 @@ def payout(pool_id: UInt256):
     if get(STATUS_KEY + pool_id).to_int() != 0:
         raise Exception('Pool already canceled or closed.')
 
-    if len(get(RESULT_KEY + pool_id)) == 0:
-        raise Exception("Result not yet available")
+    spot = get(RAW_DATA_KEY + pool_id)
+    if len(spot) == 0:
+        raise Exception('Spot price not yet retrieved by Oracle nodes.')
+
+    strike = get(STRIKE_PRICE_KEY + pool_id)
+    spot = cast(str, spot)
+    strike = cast(str, strike)
+
+    if greater_equal(spot, strike):
+        result = 1
+    else:
+        result = 0
+    put(RESULT_KEY + pool_id, result)
 
     owner = UInt160(get(OWNER_KEY))
     token = UInt160(get(TOKEN_ACCEPTED_KEY + pool_id))
     players = find(PLAYER_POSITION_KEY + pool_id)
-    result = get(RESULT_KEY + pool_id).to_int()
     total_short = get(SHORT_POSITION_KEY + pool_id).to_int()
     total_long = get(LONG_POSITION_KEY + pool_id).to_int()
     total_margin = get(TOTAL_MARGIN_KEY + pool_id).to_int()

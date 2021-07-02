@@ -17,9 +17,7 @@ def manifest_metadata()->NeoMetadata:
     meta = NeoMetadata()
     meta.author = "StevenWang@Neo"
     meta.email = "wangzifansteven@gmail.com"
-    meta.description = """
-        One stop margin pooling game.
-    """
+    meta.description = """Binary Options. With Crypto."""
     return meta
 
 
@@ -285,17 +283,61 @@ def interpret(pool_id: UInt256):
     spot = get(RAW_DATA_KEY + pool_id)
     if len(spot) == 0:
         raise Exception('Spot price not yet retrieved by Oracle nodes.')
-    spot = cast(str, spot)
     strike = get(STRIKE_PRICE_KEY + pool_id)
-    strike = cast(str, strike)
 
+    spot = cast(str, spot)
+    strike = cast(str, strike)
     if spot == 'Error':
         raise Exception('Oracle error.')
 
-    if spot > strike:
+    if greater_equal(spot, strike):
         put(RESULT_KEY + pool_id, 1)
     else:
         put(RESULT_KEY + pool_id, 0)
+
+
+def greater_equal(a: str, b: str)->bool:
+    length_a = len(a)
+    length_b = len(b)
+    decimal_a: int = 0
+    decimal_b: int = 0
+    i: int = 0
+    while i < length_a:
+        if a[i] == '.':
+            decimal_a = i
+            break
+        i += 1
+    if decimal_a == 0:
+        decimal_a = length_a
+    i = 0
+    while i < length_b:
+        if b[i] == '.':
+            decimal_b = i
+            break
+        i += 1
+    if decimal_b == 0:
+        decimal_b = length_b
+    if decimal_a > decimal_b:
+        return True
+    elif decimal_a < decimal_b:
+        return False
+    else:
+        for i in range(0, decimal_a):
+            if a[i] > b[i]:
+                return True
+            elif a[i] < b[i]:
+                return False
+            i+=1
+        for i in range(decimal_a+1, min(length_a, length_b)):
+            if a[i] > b[i]:
+                return True
+            elif a[i] < b[i]:
+                return False
+        if length_a >= length_b:
+            return True
+        else:
+            return False
+    return False
 
 @public
 def payout(pool_id: UInt256):

@@ -22,4 +22,4 @@ For a player to enter a pool, he / she will transfer the specified margin into t
 After expiry, the pool owner makes an oracle request to feed in the external data and call on the payout function to finalize returns. NeoOps adopts a 'The-winner-takes-it-all' policy when it comes to profit distribution, namely, the winning position (long or short) will equally split the entire margin pool (with a slight commission discounted to the pool owner and NeoOps) while the other position loses its margin. 
 
 ### CANCELING POLICIES
-NeoOps allows for cancelation of pools and positions any time before expiry. For pool owners, canceling a pool would entail losing the lumpsum of their deposits. While for players, a slight penalty is charged on their margins.
+NeoOps allows for cancellation of pools and positions any time before expiry. For pool owners, canceling a pool would entail losing the lumpsum of their deposits. While for players, a slight penalty is charged on their margins.

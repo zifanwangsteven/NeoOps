@@ -292,7 +292,7 @@ def interpret(pool_id: UInt256):
     if spot == 'Error':
         raise Exception('Oracle error.')
 
-    if spot >= strike:
+    if spot > strike:
         put(RESULT_KEY + pool_id, 1)
     else:
         put(RESULT_KEY + pool_id, 0)

@@ -134,6 +134,8 @@ def retrieve_pool(pool_id: UInt256)-> Dict:
     json['status'] = get(STATUS_KEY + pool_id).to_int()
     json['deposit'] = get(DEPOSIT_KEY + pool_id).to_int()
     json['strike_price'] = get(STRIKE_PRICE_KEY + pool_id).to_str()
+    json['result'] = get(RESULT_KEY + pool_id).to_int()
+    json['raw'] = get(RAW_DATA_KEY + pool_id).to_str()
     return json
 
 
@@ -265,10 +267,12 @@ def store(url: str, user_data: Any, code: int, result: bytes):
     if calling_script_hash != oracle_hash:
         raise Exception('No authorization')
     pool_id = cast(UInt160, user_data)
+    spot = cast(str, result)
+    spot = spot[2 : -2]
     if code != 0:
         put(RAW_DATA_KEY + pool_id, 'Error')
     else:
-        put(RAW_DATA_KEY + pool_id, result)
+        put(RAW_DATA_KEY + pool_id, spot)
 
 @public
 def interpret(pool_id: UInt256):
@@ -282,7 +286,8 @@ def interpret(pool_id: UInt256):
     if len(spot) == 0:
         raise Exception('Spot price not yet retrieved by Oracle nodes.')
     spot = cast(str, spot)
-    strike = get(STRIKE_PRICE_KEY + pool_id).to_str()
+    strike = get(STRIKE_PRICE_KEY + pool_id)
+    strike = cast(str, strike)
 
     if spot == 'Error':
         raise Exception('Oracle error.')
@@ -363,14 +368,12 @@ def onNEP17Payment(from_address: UInt160, amount: int, data: Any):
     pass
 
 
-
-
 #-----------------------
 # CONTRACT MANAGEMENT
 #-----------------------
 
 @public
-def deploy(data: Any, update: bool):
+def _deploy(data: Any, update: bool):
     if update:
         return
     if len(get(OWNER_KEY)) != 0:

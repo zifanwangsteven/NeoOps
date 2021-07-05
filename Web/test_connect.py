@@ -40,10 +40,11 @@ def block_received(from_nodeid: int, block: payloads.Block):
 
 async def run_neo():
     # set network magic to NEO TestNet
-    settings.network.magic = 1951352142
+    settings.network.magic = 844378958
 
     # add a node to test against
-    settings.network.seedlist = ['seed1t.neo.org:20333']
+    settings.network.seedlist = ['seed1t.neo.org:20333','seed2t.neo.org:20333',
+                                 'seed3t.neo.org:20333','seed4t.neo.org:20333','seed5t.neo.org:20333']
 
     # listen to the connection events broad casted by the node manager
     msgrouter.on_client_connect_done += connection_done

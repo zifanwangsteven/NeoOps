@@ -2,7 +2,6 @@ from typing import Any, Dict, List, cast, Union
 from boa3.builtin import CreateNewEvent, public, metadata, NeoMetadata, to_script_hash
 from boa3.builtin.interop.blockchain import Transaction
 from boa3.builtin.interop import Oracle
-from boa3.builtin.interop.binary import serialize
 from boa3.builtin.contract import abort
 from boa3.builtin.interop.contract import call_contract, destroy_contract, update_contract, GAS, NEO
 from boa3.builtin.interop.runtime import calling_script_hash, script_container, check_witness, time, executing_script_hash
@@ -115,7 +114,7 @@ def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, ma
     return pool_id
 
 @public
-def retrieve_pool(pool_id: UInt256)-> bytes:
+def retrieve_pool(pool_id: UInt256)-> Dict:
     pool_owner = get(POOL_OWNER_KEY + pool_id)
     if len(pool_owner) == 0:
         raise Exception("Pool doesn't exist.")
@@ -135,10 +134,10 @@ def retrieve_pool(pool_id: UInt256)-> bytes:
     json['strike_price'] = get(STRIKE_PRICE_KEY + pool_id).to_str()
     json['result'] = get(RESULT_KEY + pool_id).to_int()
     json['raw'] = get(RAW_DATA_KEY + pool_id).to_str()
-    return serialize(json)
+    return json
 
 @public
-def list_ongoing_pools()->bytes:
+def list_ongoing_pools()->Dict:
     pools = find(POOL_OWNER_KEY)
     json = {}
     while pools.next():
@@ -147,7 +146,7 @@ def list_ongoing_pools()->bytes:
         pool_id = UInt256(storage_key[len(POOL_OWNER_KEY):])
         if get(STATUS_KEY + pool_id).to_int() == 0:
             json[pool_id.to_str()] = retrieve_pool(pool_id)
-    return serialize(json)
+    return json
 
 
 

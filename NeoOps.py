@@ -138,14 +138,14 @@ def retrieve_pool(pool_id: UInt256)-> Dict:
 
 @public
 def list_ongoing_pool()->Dict:
-    pools = find(OWNER_KEY)
+    pools = find(POOL_OWNER_KEY)
     json = {}
     while pools.next():
         result_pair = pools.value
         storage_key = cast(bytes, result_pair[0])
         pool_id = UInt256(storage_key[len(POOL_OWNER_KEY):])
         if get(STATUS_KEY + pool_id).to_int() == 0:
-            json[pool_id] = retrieve_pool(pool_id)
+            json[pool_id.to_str()] = retrieve_pool(pool_id)
     return json
 
 

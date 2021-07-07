@@ -121,6 +121,7 @@ def retrieve_pool(pool_id: UInt256)-> Dict:
     json = {}
     json['pool_owner'] = UInt160(pool_owner)
     json['expiry'] = get(EXPIRY_KEY + pool_id).to_int()
+    json['threshold'] = get(THRESHOLD_KEY + pool_id).to_int()
     json['token_id'] = UInt160(get(TOKEN_ACCEPTED_KEY + pool_id))
     json['margin'] = get(MARGIN_KEY + pool_id).to_int()
     json['total_margin'] = get(TOTAL_MARGIN_KEY + pool_id).to_int()
@@ -148,7 +149,32 @@ def list_ongoing_pools()->Dict:
             json[pool_id.to_str()] = retrieve_pool(pool_id)
     return json
 
+@public
+def list_pools_by_owner(pool_owner: UInt160) -> List:
+    pools = find(POOL_OWNER_KEY)
+    owner_pools: List = []
+    while pools.next():
+        result_pair = pools.value
+        owner = cast(bytes, result_pair[1])
+        owner = UInt160(owner)
+        if pool_owner == owner:
+            storage_key = cast(bytes, result_pair[0])
+            pool_id = UInt256(storage_key[len(POOL_OWNER_KEY):])
+            owner_pools.append(pool_id)
+    return owner_pools
 
+@public
+def list_pools_by_player(player: UInt160)-> Dict:
+    pools = find(POOL_OWNER_KEY)
+    pools_by_player: Dict = {}
+    while pools.next():
+        result_pair = pools.value
+        storage_key = cast(bytes, result_pair[0])
+        pool_id = UInt256(storage_key[len(POOL_OWNER_KEY):])
+        position = get(PLAYER_POSITION_KEY + pool_id + player)
+        if len(position) != 0:
+            pools_by_player[pool_id] = cast(int, position)
+    return pools_by_player
 
 @public
 def cancel_pool(pool_id: UInt256):
@@ -194,15 +220,15 @@ def bet(player: UInt160, pool_id: UInt256, bet_option: int):
     if len(get(PLAYER_POSITION_KEY + pool_id + player)) != 0:
         raise Exception("Position already settled.")
 
-    if bet_option != 0 and bet_option != 1:
-        raise Exception("Bet option must be either 1 (Long) or 0 (Short).")
+    if bet_option != 1 and bet_option != 2:
+        raise Exception("Bet option must be either 1 (Long) or 2 (Short).")
 
     margin: int = get(MARGIN_KEY + pool_id).to_int()
     total_margin: int = get(TOTAL_MARGIN_KEY + pool_id).to_int()
     token = UInt160(get(TOKEN_ACCEPTED_KEY + pool_id))
     transfer_token(token, player, executing_script_hash, margin, None)
 
-    if bet_option == 0:
+    if bet_option == 2:
         total_short: int = get(SHORT_POSITION_KEY + pool_id).to_int()
         total_short += 1
         put(SHORT_POSITION_KEY + pool_id, total_short)
@@ -239,7 +265,7 @@ def cancel_bet(player: UInt160, pool_id: UInt256):
     token = UInt160(get(TOKEN_ACCEPTED_KEY + pool_id))
     transfer_token(token, executing_script_hash, player, refund, None)
 
-    if position == 0:
+    if position == 2:
         total_short: int = get(SHORT_POSITION_KEY + pool_id).to_int()
         total_short -= 1
         put(SHORT_POSITION_KEY + pool_id, total_short)
@@ -352,7 +378,7 @@ def payout(pool_id: UInt256):
     if greater_equal(spot, strike):
         result = 1
     else:
-        result = 0
+        result = 2
     put(RESULT_KEY + pool_id, result)
 
     owner = UInt160(get(OWNER_KEY))
@@ -375,7 +401,7 @@ def payout(pool_id: UInt256):
     deposit -= deposit_commission
     transfer_token(token, executing_script_hash, pool_owner, deposit, None)
 
-    if result == 0 and total_short != 0:
+    if result == 2 and total_short != 0:
         payoff = total_margin // total_short
         while players.next():
             pair = players.value
@@ -394,6 +420,13 @@ def payout(pool_id: UInt256):
             if position == 1:
                 address = UInt160(storage_key[len(PLAYER_POSITION_KEY + pool_id):])
                 transfer_token(token, executing_script_hash, address, payoff, None)
+
+    # when the winning position is short of margin, the total margin is equally split between pool owner and contract owner
+    if (result == 2 and total_short == 0) or (result == 1 and total_long == 0):
+        payoff_to_pool_owner = total_margin // 2
+        payoff_to_owner = total_margin - payoff_to_pool_owner
+        transfer_token(token, executing_script_hash, pool_owner, payoff_to_pool_owner, None)
+        transfer_token(token, executing_script_hash, owner, payoff_to_owner, None)
 
     put(STATUS_KEY + pool_id, 2)
 

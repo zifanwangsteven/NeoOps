@@ -148,9 +148,9 @@ def list_ongoing_pools()->Dict:
     return json
 
 @public
-def list_pools_by_owner(pool_owner: UInt160) -> List:
+def list_pools_by_owner(pool_owner: UInt160) -> Dict:
     pools = find(POOL_OWNER_KEY)
-    owner_pools: List = []
+    owner_pools: Dict = {}
     while pools.next():
         result_pair = pools.value
         owner = cast(bytes, result_pair[1])
@@ -158,7 +158,9 @@ def list_pools_by_owner(pool_owner: UInt160) -> List:
         if pool_owner == owner:
             storage_key = cast(bytes, result_pair[0])
             pool_id = UInt256(storage_key[len(POOL_OWNER_KEY):])
-            owner_pools.append(pool_id)
+            pool_result:Dict = retrieve_pool(pool_id)
+            owner_pools[pool_id] = pool_result
+
     return owner_pools
 
 @public
@@ -171,7 +173,9 @@ def list_pools_by_player(player: UInt160)-> Dict:
         pool_id = UInt256(storage_key[len(POOL_OWNER_KEY):])
         position = get(PLAYER_POSITION_KEY + pool_id + player)
         if len(position) != 0:
-            pools_by_player[pool_id] = cast(int, position)
+            pool_result:Dict = retrieve_pool(pool_id)
+            pool_result['position'] = cast(int, position)
+            pools_by_player[pool_id] = pool_result
     return pools_by_player
 
 @public

@@ -98,8 +98,6 @@ def pool_init(pool_owner: UInt160, token_id: int, url: str, json_filter: str, ma
     if threshold < time:
         raise Exception('Threshold time is set too soon.')
 
-    if threshold >= expiry:
-        raise Exception('Threshold time must be set before expiry time.')
     put(THRESHOLD_KEY + pool_id, threshold)
 
     put(STRIKE_PRICE_KEY + pool_id, strike)
@@ -214,7 +212,8 @@ def bet(player: UInt160, pool_id: UInt256, bet_option: int):
         raise Exception("Pool already canceled or closed.")
 
     threshold = get(THRESHOLD_KEY + pool_id).to_int()
-    if time > threshold:
+    expiry = get(EXPIRY_KEY + pool_id).to_int()
+    if time > threshold or time > expiry:
         raise Exception('Already passed betting threshold.')
 
     if len(get(PLAYER_POSITION_KEY + pool_id + player)) != 0:

@@ -52,7 +52,7 @@ OWNER_COMMISSION = 1 # 0.1%
 POOL_OWNER_COMMISSION = 2 # 0.2%
 DEPOSIT_COMMISSION = 2 # 0.2%
 CANCEL_PENALTY = 3 # 0.3%
-MINIMUM_DEPOSIT = 1 * 100_000_000 # minimum deposit for creating a pool
+MINIMUM_DEPOSIT = 10 * 100_000_000 # minimum deposit for creating a pool
 ORACLE_ADDRESS = 'NTz4UrybSL4C7HSfaVpXV6hcsWTkks8Nrj'
 
 NEO_ADDRESS = NEO
@@ -410,7 +410,7 @@ def payout(pool_id: UInt256):
             pair = players.value
             storage_key = cast(bytes, pair[0])
             position = cast(int, pair[1])
-            if position == 0:
+            if position == 2:
                 address = UInt160(storage_key[len(PLAYER_POSITION_KEY + pool_id):])
                 transfer_token(token, executing_script_hash, address, payoff, None)
 

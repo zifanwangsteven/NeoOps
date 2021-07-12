@@ -1,6 +1,7 @@
-# NeoOps
----
 See it live on [NeoOps](https://www.n3-neoops.com/)
+---
+
+## Smart Contract
 ### INTRODUCTION
 NeoOps is a financial instrument empowered by a NEO-N3 smart contract that replicates the payoff of a binary option. In a typical game, players predict whether the price of an underlying asset will be greater than or smaller than a benchmark price point (aka strike price) at a prespecified time (aka expiry). Then, at expiry, the pool owner of the game invokes an automated logic which fetches the price at expiry (aka spot price) and initiates the payout process.
 
@@ -19,8 +20,12 @@ To create a pool on NeoOps, a user will need to have a valid NEO address with a 
 ### BET
 For a player to enter a pool, he / she will transfer the specified margin into the smart contract along with a position of their choice: 0 for short (with the prediction that spot price will be lesser than strike price), 1 for long (with the prediction that spot price will be greater than strike price).
 
-### ORACLE_CALL & PAYOUT
-After expiry, the pool owner makes an oracle request to feed in the external data and call on the payout function to finalize returns. NeoOps adopts a 'The-winner-takes-it-all' policy when it comes to profit distribution, namely, the winning position (long or short) will equally split the entire margin pool (with a slight commission discounted to the pool owner and NeoOps) while the other position loses its margin. 
+### BINANCE API, ORACLE CALL & PAYOUT
+NeoOps uses binance API as its external price data source. The url and jsonPath filter we use to retrieve the price at expiry is `https://api.binance.com/api/v3/aggTrades?symbol=${symbol}&startTime=${expiry - 1000}&endTime=${expiry}` and `$[-1:]..p`, namely, we retrieve the trade information of the symbol on the last second before expiry and extract the last trade available to us as the spot price. After expiry, the pool owner makes an oracle request to feed in the external data and call on the payout function to finalize returns. NeoOps adopts a 'The-winner-takes-it-all' policy when it comes to profit distribution, namely, the winning position (long or short) will equally split the entire margin pool (with a slight commission discounted to the pool owner and NeoOps) while the other position loses its margin. 
 
-### CANCELING POLICIES
-NeoOps allows for cancellation of pools and positions any time before expiry. For pool owners, canceling a pool would entail losing the lumpsum of their deposits. While for players, a slight penalty is charged on their margins.
+### COMMISSIONS AND PENALTIES
+NeoOps requires a minimum of 10 GAS tokens deposits to be put down as good faith money from pool owners. This deposit will be charged a 0.2% commision by NeoOps if the pool executes the payout function susccessfully. This deposit will be forfeited should the owner cancel on the pool before expiry. A player will be charged a 0.3% penalty on his / her margins on cancellation.On payout, NeoOps and the pool owner is entitled to respectively a 0.1% commission and 0.2% commission. In the event that there are no winning positions settled, NeoOps and the pool manager will split the total margin.
+## Frontend
+NeoOps also provides a friendly frontend interface as an entry point for our less tech-savy users. The frontend interface is build with Element UI on Vue.js and NeoLine dAPI. To be able to use our frontend interface, make sure you are using Chrome as your browser and have NeoLine installed.
+
+When creating pools, please input values as in NUM * 10 ^ Decimal. (e.g. for GAS tokens: 10 * 10 ^ 8)
